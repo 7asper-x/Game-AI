@@ -1,3 +1,4 @@
+import Conversation from "@/components/Conversation";
 import prisma from "@/lib/db/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { Metadata } from "next";
@@ -15,5 +16,16 @@ export default async function ConversationsPage() {
     where: { userId },
   });
 
-  return <div>{JSON.stringify(allConversations)}</div>;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {allConversations.map((conversation) => (
+        <Conversation conversation={conversation} key={conversation.id} />
+      ))}
+      {allConversations.length === 0 && (
+        <div className="col-span-full text-center">
+          {"You don't have any conversations yet. Why don't you create one?"}
+        </div>
+      )}
+    </div>
+  );
 }

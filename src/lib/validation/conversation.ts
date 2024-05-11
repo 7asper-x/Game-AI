@@ -7,3 +7,11 @@ export const createConversationSchema = z.object({
 });
 
 export type CreateConversationSchema = z.infer<typeof createConversationSchema>;
+
+export const updateConversationSchema = createConversationSchema.extend({
+  id: z.string().min(1, { message: "Id is required" }),
+});
+
+export const deleteConversationSchema = z.object({
+  id: z.string().min(1, { message: "Id is required" }),
+});

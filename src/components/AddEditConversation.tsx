@@ -23,34 +23,46 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import LoadingButton from "./ui/loading-button";
 import { useRouter } from "next/navigation";
+import { Conversation } from "@prisma/client";
 
-interface AddConversationProps {
+interface AddEditConversationProps {
   open: boolean;
   setOpen: (open: boolean) => void;
+  conversationToEdit?: Conversation;
 }
 
-export default function AddConversation({
+export default function AddEditConversation({
   open,
   setOpen,
-}: AddConversationProps) {
+  conversationToEdit,
+}: AddEditConversationProps) {
   const router = useRouter();
   const form = useForm<CreateConversationSchema>({
     resolver: zodResolver(createConversationSchema),
     defaultValues: {
-      title: "",
-      content: "",
+      title: conversationToEdit?.title || "",
+      content: conversationToEdit?.content || "",
     },
   });
 
   async function onSubmit(input: CreateConversationSchema) {
     try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        body: JSON.stringify(input),
-      });
+      if (conversationToEdit) {
+        const response = await fetch("/api/conversations", {
+          method: "PUT",
+          body: JSON.stringify({ ...input, id: conversationToEdit.id }),
+        });
 
-      if (!response.ok) throw Error("Status code: " + response.status);
-      form.reset();
+        if (!response.ok) throw Error("Status code: " + response.status);
+      } else {
+        const response = await fetch("/api/conversations", {
+          method: "POST",
+          body: JSON.stringify(input),
+        });
+
+        if (!response.ok) throw Error("Status code: " + response.status);
+        form.reset();
+      }
       router.refresh();
       setOpen(false);
     } catch (error) {
@@ -98,7 +110,7 @@ export default function AddConversation({
                 type="submit"
                 loading={form.formState.isSubmitting}
               >
-                Submit
+                {conversationToEdit ? "Update" : "Submit"}
               </LoadingButton>
             </DialogFooter>
           </form>

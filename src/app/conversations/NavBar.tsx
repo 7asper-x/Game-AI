@@ -7,10 +7,10 @@ import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import AddConversation from "@/components/AddConversation";
+import AddEditConversation from "@/components/AddEditConversation";
 
 export default function NavBar() {
-  const [showAddConversation, setShowAddConversation] = useState(false);
+  const [showAddEditConversation, setShowAddEditConversation] = useState(false);
   return (
     <>
       <div className="p-4 shadow">
@@ -26,16 +26,16 @@ export default function NavBar() {
                 elements: { avatarBox: { width: "2.5rem", height: "2.5rem" } },
               }}
             />
-            <Button onClick={() => setShowAddConversation(true)}>
+            <Button onClick={() => setShowAddEditConversation(true)}>
               <Plus size={20} className="mr-2" />
               Add New Conversation
             </Button>
           </div>
         </div>
       </div>
-      <AddConversation
-        open={showAddConversation}
-        setOpen={setShowAddConversation}
+      <AddEditConversation
+        open={showAddEditConversation}
+        setOpen={setShowAddEditConversation}
       />
     </>
   );
