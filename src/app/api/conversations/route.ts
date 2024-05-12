@@ -1,4 +1,6 @@
+import { conversationIndex } from "@/lib/db/pinecone";
 import prisma from "@/lib/db/prisma";
+import { getEmbedding } from "@/lib/openai";
 import {
   createConversationSchema,
   deleteConversationSchema,
@@ -25,12 +27,27 @@ export async function POST(req: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const conversation = await prisma.conversation.create({
-      data: {
-        title,
-        content,
-        userId,
-      },
+    const embedding = await getEmbeddingForConversation(title, content);
+
+    const conversation = await prisma.$transaction(async (tx) => {
+      // The order of these two functions are important, don't change it.
+      const conversation = await tx.conversation.create({
+        data: {
+          title,
+          content,
+          userId,
+        },
+      });
+
+      await conversationIndex.upsert([
+        {
+          id: conversation.id,
+          values: embedding,
+          metadata: { userId },
+        },
+      ]);
+
+      return conversation;
     });
 
     return Response.json({ conversation });
@@ -67,12 +84,26 @@ export async function PUT(req: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const updatedConversation = await prisma.conversation.update({
-      where: { id },
-      data: {
-        title,
-        content,
-      },
+    const embedding = await getEmbeddingForConversation(title, content);
+
+    const updatedConversation = await prisma.$transaction(async (tx) => {
+      const updatedConversation = await tx.conversation.update({
+        where: { id },
+        data: {
+          title,
+          content,
+        },
+      });
+
+      await conversationIndex.upsert([
+        {
+          id,
+          values: embedding,
+          metadata: { userId },
+        },
+      ]);
+
+      return updatedConversation;
     });
 
     return Response.json({ updatedConversation }, { status: 200 });
@@ -109,7 +140,10 @@ export async function DELETE(req: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await prisma.conversation.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.conversation.delete({ where: { id } });
+      await conversationIndex.deleteOne(id);
+    });
 
     return Response.json(
       { message: "Conversation deleted successfully" },
@@ -119,4 +153,11 @@ export async function DELETE(req: Request) {
     console.error(error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+async function getEmbeddingForConversation(
+  title: string,
+  content: string | undefined
+) {
+  return getEmbedding(title + "\n\n" + content ?? "");
 }

@@ -24,6 +24,7 @@ import { Textarea } from "./ui/textarea";
 import LoadingButton from "./ui/loading-button";
 import { useRouter } from "next/navigation";
 import { Conversation } from "@prisma/client";
+import { useState } from "react";
 
 interface AddEditConversationProps {
   open: boolean;
@@ -36,6 +37,8 @@ export default function AddEditConversation({
   setOpen,
   conversationToEdit,
 }: AddEditConversationProps) {
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+
   const router = useRouter();
   const form = useForm<CreateConversationSchema>({
     resolver: zodResolver(createConversationSchema),
@@ -71,11 +74,37 @@ export default function AddEditConversation({
     }
   }
 
+  async function deleteConversation() {
+    if (!conversationToEdit) return;
+
+    setDeleteInProgress(true);
+
+    try {
+      const response = await fetch("/api/conversations", {
+        method: "DELETE",
+        body: JSON.stringify({
+          id: conversationToEdit.id,
+        }),
+      });
+
+      if (!response.ok) throw Error("Status code: " + response.status);
+      router.refresh();
+      setOpen(false);
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong. please try again.");
+    } finally {
+      setDeleteInProgress(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Conversation</DialogTitle>
+          <DialogTitle>
+            {conversationToEdit ? "Edit Conversation" : "Add Conversation"}
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
@@ -105,13 +134,25 @@ export default function AddEditConversation({
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="gap-1 sm:gap-0">
               <LoadingButton
                 type="submit"
                 loading={form.formState.isSubmitting}
+                disabled={deleteInProgress}
               >
                 {conversationToEdit ? "Update" : "Submit"}
               </LoadingButton>
+              {conversationToEdit && (
+                <LoadingButton
+                  type="button"
+                  loading={deleteInProgress}
+                  disabled={form.formState.isSubmitting}
+                  variant="destructive"
+                  onClick={deleteConversation}
+                >
+                  Delete
+                </LoadingButton>
+              )}
             </DialogFooter>
           </form>
         </Form>
