@@ -49,7 +49,7 @@ export default function AIChatBox({ open, onClose }: AIChatBoxProps) {
       )}
     >
       <button onClick={onClose} className="mb-1 ms-auto block">
-        <XCircle size={30} />
+        <XCircle size={25} />
       </button>
       <div className="flex h-[600px] flex-col rounded bg-background border">
         <div className="h-full mt-3 px-3 overflow-y-auto" ref={scrollRef}>
